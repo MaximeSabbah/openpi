@@ -11,6 +11,7 @@ def make_droid_example() -> dict:
     """Creates a random input example for the Droid policy."""
     return {
         "observation/exterior_image_1_left": np.random.randint(256, size=(224, 224, 3), dtype=np.uint8),
+        "observation/exterior_image_2_left": np.random.randint(256, size=(224, 224, 3), dtype=np.uint8),
         "observation/wrist_image_left": np.random.randint(256, size=(224, 224, 3), dtype=np.uint8),
         "observation/joint_position": np.random.rand(7),
         "observation/gripper_position": np.random.rand(1),
@@ -42,6 +43,7 @@ class DroidInputs(transforms.DataTransformFn):
         # Possibly need to parse images to uint8 (H,W,C) since LeRobot automatically
         # stores as float32 (C,H,W), gets skipped for policy inference
         base_image = _parse_image(data["observation/exterior_image_1_left"])
+        base_image_2 = _parse_image(data.get("observation/exterior_image_2_left", np.zeros_like(base_image)))
         wrist_image = _parse_image(data["observation/wrist_image_left"])
 
         match self.model_type:
@@ -52,7 +54,7 @@ class DroidInputs(transforms.DataTransformFn):
             case _model.ModelType.PI0_FAST:
                 names = ("base_0_rgb", "base_1_rgb", "wrist_0_rgb")
                 # We don't mask out padding images for FAST models.
-                images = (base_image, np.zeros_like(base_image), wrist_image)
+                images = (base_image, base_image_2, wrist_image)
                 image_masks = (np.True_, np.True_, np.True_)
             case _:
                 raise ValueError(f"Unsupported model type: {self.model_type}")
